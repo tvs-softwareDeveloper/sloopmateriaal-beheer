@@ -1,0 +1,105 @@
+{
+  "name": "Material",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the reclaimed material"
+    },
+    "material_type": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "metal",
+        "concrete",
+        "brick",
+        "glass",
+        "fixtures",
+        "appliances",
+        "roofing",
+        "plumbing",
+        "electrical",
+        "other"
+      ],
+      "description": "Type of material"
+    },
+    "quantity": {
+      "type": "number",
+      "description": "Quantity of items"
+    },
+    "unit": {
+      "type": "string",
+      "enum": [
+        "pieces",
+        "kg",
+        "lbs",
+        "sqft",
+        "sqm",
+        "linear_ft",
+        "linear_m",
+        "pallets",
+        "boxes"
+      ],
+      "default": "pieces"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "available",
+        "reserved",
+        "for_sale",
+        "for_reuse",
+        "for_disposal",
+        "sold",
+        "disposed",
+        "recycled"
+
+      ],
+      "default": "available",
+      "description": "Current status of the material"
+    },
+    "location": {
+      "type": "string",
+      "description": "Storage location or site"
+    },
+    "condition": {
+      "type": "string",
+      "enum": [
+        "excellent",
+        "good",
+        "fair",
+        "poor"
+      ],
+      "default": "good"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about the material"
+    },
+    "qr_code": {
+      "type": "string",
+      "description": "Unique QR code identifier"
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Image URLs"
+    },
+    "price": {
+      "type": "number",
+      "description": "Price if for sale"
+    },
+    "project_name": {
+      "type": "string",
+      "description": "Demolition project name"
+    }
+  },
+  "required": [
+    "name",
+    "material_type",
+    "quantity",
+    "status"
+  ]
+}

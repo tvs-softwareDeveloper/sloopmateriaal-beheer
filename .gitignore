@@ -1,0 +1,21 @@
+# dependencies and builds
+node_modules/
+dist/
+dist-ssr/
+
+# secrets: copy backend/.env.example to backend/.env and fill it in
+.env
+.env.*
+!.env.example
+
+# uploaded photos are user data, only the folder is kept
+backend/public/uploads/*
+!backend/public/uploads/.gitkeep
+
+# logs and editor files
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
