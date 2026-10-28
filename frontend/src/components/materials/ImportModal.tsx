@@ -155,7 +155,9 @@ export default function ImportModal({ open, onClose, onImportSuccess, t } : Impo
   };
 
   const normalizeStatus = (status: any): string => {
-    const statuses = ['available', 'reserved', 'for_sale', 'for_reuse', 'for_disposal', 'sold', 'disposed'];
+    // 'recycled' added, an imported 'recycled' used to become 'available'
+    // old: const statuses = ['available', 'reserved', 'for_sale', 'for_reuse', 'for_disposal', 'sold', 'disposed'];
+    const statuses = ['available', 'reserved', 'for_sale', 'for_reuse', 'for_disposal', 'sold', 'recycled', 'disposed'];
     const normalized = String(status ?? '').toLowerCase().trim().replace(/\s+/g, '_');
     return statuses.includes(normalized) ? normalized : 'available';
   };

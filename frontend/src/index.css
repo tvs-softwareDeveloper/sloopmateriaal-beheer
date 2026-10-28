@@ -79,11 +79,14 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
+/* old:
 button:hover {
-  /* border-color: #646cff;
-  border: solid; */
+  border-color: #646cff;
+  border: solid;
   background-color: darkgray;
 }
+outside the tailwind layers this beat every hover:bg-* class, so a violet or dark button turned gray on hover.
+it now lives in @layer base, at the bottom of this file. */
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
@@ -115,8 +118,24 @@ button[data-slot="checkbox"][data-state="checked"] {
   a:hover {
     color: #747bff;
   }
+  /* old:
   button {
     background-color: #f9f9f9;
+  }
+  outside the tailwind layers this rule beat every bg-* class on a button, so in light mode the dark
+  and violet buttons turned white with white text. it now lives in @layer base, right below. */
+}
+
+/* same light-mode default for buttons, but inside the base layer so bg-* classes win again */
+@layer base {
+  @media (prefers-color-scheme: light) {
+    button {
+      background-color: #f9f9f9;
+    }
+  }
+  /* the gray hover for buttons without their own hover color, moved here from above */
+  button:hover {
+    background-color: darkgray;
   }
 }
 

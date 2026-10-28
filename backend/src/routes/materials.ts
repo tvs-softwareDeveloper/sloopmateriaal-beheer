@@ -104,7 +104,12 @@ router.put("/:id", async (req, res) => {
   await db.query("UPDATE materials SET ? WHERE id = ?", [
     {
       ...updates,
-      images: updates.images ? JSON.stringify(updates.images) : undefined,
+      // old: images: updates.images ? JSON.stringify(updates.images) : undefined,
+      // store only the file names, like POST does. the form sends full urls, and mapMaterial puts
+      // the host in front again, so a full url here broke every photo after an edit
+      images: Array.isArray(updates.images)
+        ? JSON.stringify(updates.images.map((url: string) => url.split("/").pop()))
+        : undefined,
     },
     id,
   ]);

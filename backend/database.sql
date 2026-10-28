@@ -5,7 +5,9 @@ CREATE TABLE materials (
   material_type ENUM('wood','metal','concrete','brick','glass','fixtures','appliances','roofing','plumbing','electrical','other') NOT NULL,
   quantity INT NOT NULL DEFAULT 1,
   unit ENUM('pieces','kg','lbs','sqft','sqm','linear_ft','linear_m','pallets','boxes') DEFAULT 'pieces',
-  status ENUM('available','reserved','for_sale','for_reuse','for_disposal','sold','disposed') NOT NULL DEFAULT 'available',
+  -- old, before 'recycled' was added (see migrations/001_recycled_status.sql):
+  -- status ENUM('available','reserved','for_sale','for_reuse','for_disposal','sold','disposed') NOT NULL DEFAULT 'available',
+  status ENUM('available','reserved','for_sale','for_reuse','for_disposal','sold','recycled','disposed') NOT NULL DEFAULT 'available',
   location VARCHAR(255),
   `condition` ENUM('excellent','good','fair','poor'),
   notes TEXT,

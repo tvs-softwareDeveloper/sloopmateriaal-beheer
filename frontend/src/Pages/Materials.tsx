@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { useState, useMemo } from "react";
+// old: import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
+import type { ChangeEvent } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -34,8 +36,12 @@ import MaterialForm from "@/components/materials/MaterialForm";
 import BulkUpdateModal from "@/components/materials/BulkUpdateModal";
 import type { Material } from "../types";
 import type { Filters } from "@/components/materials/FilterPanel";
+import { EMPTY_FILTERS } from "@/components/materials/emptyFilters";
+import { filterMaterials } from "@/components/materials/filterMaterials";
 import ImportModal from '@/components/materials/ImportModal';
 import { API } from '../components/config';
+import { Camera } from "lucide-react";
+import { useAiStatus } from "@/components/ai/aiApi";
 
 export default function Materials() {
   const queryClient = useQueryClient();
@@ -54,14 +60,25 @@ export default function Materials() {
 
   const [bulkUpdateOpen, setBulkUpdateOpen] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
+
+  // "new from photo": the camera (or file picker) opens straight from the button, the picked photos
+  // go to the form, which uploads them and lets the ai fill it in
+  const { data: aiStatus } = useAiStatus();
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const [photoFiles, setPhotoFiles] = useState<File[] | null>(null);
+
+  const handlePhotoPicked = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = ""; // so the same photo can be picked again
+    if (files.length === 0) return;
+    setEditingMaterial(null);
+    setPhotoFiles(files);
+    setFormOpen(true);
+  };
   // const [selectedIds, setSelectedIds] = useState([]);
-const [filters, setFilters] = useState<Filters>({
-  search: "",
-  type: "all",
-  status: "all",
-  condition: "all",
-  sort: "-created_date",
-});
+// old: useState<Filters>({ search: "", type: "all", status: "all", condition: "all", sort: "-created_date" })
+// the same start values, plus the four filters smart search can set
+const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
 
   // Query
   const { data: materials = [], isLoading } = useQuery<Material[]>({
@@ -132,35 +149,11 @@ const [filters, setFilters] = useState<Filters>({
 
   // Filter and sort materials
   const filteredMaterials = useMemo(() => {
-    let result = [...materials];
-
-    // Search
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      result = result.filter(
-        (m) =>
-          m.name?.toLowerCase().includes(searchLower) ||
-          m.location?.toLowerCase().includes(searchLower) ||
-          m.project_name?.toLowerCase().includes(searchLower) ||
-          m.qr_code?.toLowerCase().includes(searchLower) ||
-          m.notes?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Type filter
-    if (filters.type !== "all") {
-      result = result.filter((m) => m.material_type === filters.type);
-    }
-
-    // Status filter
-    if (filters.status !== "all") {
-      result = result.filter((m) => m.status === filters.status);
-    }
-
-    // Condition filter
-    if (filters.condition !== "all") {
-      result = result.filter((m) => m.condition === filters.condition);
-    }
+    // old: let result = [...materials]; followed by one block per filter (search, price, project, location,
+    // type, status, condition). that filter code moved unchanged to filterMaterials.ts, so smart search can
+    // check its filters with exactly the same rules. before that the search was one piece of text in one
+    // field; then every word with exact text; now every word, also in another form ("staal" finds "Stalen").
+    const result = filterMaterials(materials, filters);
 
     // Sort
     // const [sortField, sortDir] = filters.sort.startsWith('-')
@@ -337,9 +330,35 @@ const [filters, setFilters] = useState<Filters>({
               {selectionMode ? t("cancelSelection") : t("select")}
             </Button>
 
+            {/* no capture attribute: a phone then lets you choose between the camera and the gallery,
+                a laptop shows the normal file picker */}
+            {aiStatus?.enabled && (
+              <>
+                <input
+                  title="photoinput"
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  // old: capture="environment" (opened the camera straight away, without a gallery option)
+                  multiple
+                  onChange={handlePhotoPicked}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => photoInputRef.current?.click()}
+                  className="border-violet-300 text-violet-700 hover:bg-violet-50"
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  {t("aiNewFromPhoto")}
+                </Button>
+              </>
+            )}
+
             <Button
               onClick={() => {
                 setEditingMaterial(null);
+                setPhotoFiles(null);
                 setFormOpen(true);
               }}
               className="bg-slate-900 hover:bg-slate-800"
@@ -390,7 +409,8 @@ const [filters, setFilters] = useState<Filters>({
         )}
 
         {/* Filters */}
-        <FilterPanel filters={filters} setFilters={setFilters} t={t} />
+        {/* old: <FilterPanel filters={filters} setFilters={setFilters} t={t} /> */}
+        <FilterPanel filters={filters} setFilters={setFilters} t={t} materials={materials} />
 
         {/* Materials List */}
         {isLoading ? (
@@ -445,11 +465,13 @@ const [filters, setFilters] = useState<Filters>({
           onClose={() => {
             setFormOpen(false);
             setEditingMaterial(null);
+            setPhotoFiles(null);
           }}
           onSubmit={handleSubmit}
           material={editingMaterial}
           isLoading={createMutation.isPending || updateMutation.isPending}
           t={t}
+          initialFiles={photoFiles ?? undefined}
         />
 
         <QRCodeModal

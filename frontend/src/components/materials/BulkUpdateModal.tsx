@@ -39,6 +39,8 @@ const statuses = [
   { value: "for_reuse", label: "For Reuse" },
   { value: "for_disposal", label: "For Disposal" },
   { value: "sold", label: "Sold" },
+  // recycled was missing here, the database knows it too
+  { value: "recycled", label: "Recycled" },
   { value: "disposed", label: "Disposed" },
 ];
 

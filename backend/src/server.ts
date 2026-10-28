@@ -4,6 +4,12 @@ import dotenv from "dotenv";
 import multer from "multer";
 import express from "express";
 import materialsRouter from "./routes/materials";
+// openai integration
+import { readAiConfig } from "./ai/aiConfig";
+import { createAiRouter } from "./ai/aiRoutes";
+import { createOpenAiClient } from "./ai/openaiClient";
+import { createUsageTracker } from "./ai/usage";
+import { createKnownNames } from "./ai/knownNames";
 
 dotenv.config();
 
@@ -44,6 +50,31 @@ console.log("UPLOAD DIR = ", uploadsDir);
 
 app.use("/materials", materialsRouter);
 
-app.listen(PORT, "0.0.0.0", () => {
+// ai routes: without OPENAI_API_KEY in .env they answer 503, the rest of the app works as before
+const aiConfig = readAiConfig();
+// old: app.use("/ai", createAiRouter({ config: aiConfig, usage: createUsageTracker() }));
+// the photo route needs the client and the folder the upload route writes to
+app.use(
+  "/ai",
+  createAiRouter({
+    config: aiConfig,
+    usage: createUsageTracker(),
+    client: createOpenAiClient(aiConfig),
+    uploadsDir,
+    // smart search picks project and location from the names that exist
+    knownNames: createKnownNames(aiConfig.search.maxNames),
+  })
+);
+console.log(
+  aiConfig.enabled
+    ? `AI ON: photo=${aiConfig.models.photo} search=${aiConfig.models.search}`
+    : "AI OFF: no OPENAI_API_KEY in .env"
+);
+
+// old: app.listen(PORT, "0.0.0.0", () => {
+// express 5 passes a listen error (like "port already in use") to this callback. ignoring it printed
+// "Server running" while an old server on the same port kept answering with old code.
+app.listen(PORT, "0.0.0.0", (error?: Error) => {
+  if (error) throw error;
   console.log(`Server running on port ${PORT}`);
 });

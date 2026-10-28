@@ -21,6 +21,8 @@ const STATUS_COLORS = {
   for_reuse: "#8b5cf6",
   for_disposal: "#64748b",
   sold: "#22c55e",
+  // teal, same as the recycled badge on MaterialCard
+  recycled: "#14b8a6",
   disposed: "#ef4444",
 };
 
@@ -61,6 +63,7 @@ export default function DashboardCharts({
       for_reuse: 0,
       for_disposal: 0,
       sold: 0,
+      recycled: 0, // without it a recycled material counted as NaN
       disposed: 0,
       unknown: 0,
     };
