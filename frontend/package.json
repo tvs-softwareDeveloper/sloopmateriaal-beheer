@@ -9,7 +9,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "eval:search": "jiti eval/searchEval.ts"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",

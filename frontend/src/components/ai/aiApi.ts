@@ -78,6 +78,8 @@ export async function analyzePhotos(images: string[], lang: string): Promise<Pho
 // the filters smart search found; "all" = no filter, sort null = keep the current sort
 export type AiSearchFilters = {
   search: string;
+  // one word from every group has to match
+  searchGroups: string[][];
   type: "all" | Material["material_type"];
   status: "all" | Material["status"];
   condition: "all" | NonNullable<Material["condition"]>;
@@ -107,6 +109,27 @@ export async function searchWithAi(
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new AiError(body.error ?? "AI_FAILED", body.reason);
   return { filters: body.filters as AiSearchFilters, explanation: String(body.explanation ?? "") };
+}
+
+// the backend checks at most this many found materials against the question (aiConfig maxCandidates)
+export const MAX_NARROW_CANDIDATES = 50;
+
+// second step of smart search: which of the found materials don't fit the question. answers the ids to hide
+export async function narrowWithAi(query: string, ids: string[]): Promise<string[]> {
+  let res: Response;
+  try {
+    res = await fetch(`${API}/ai/narrow`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, ids }),
+    });
+  } catch {
+    throw new AiError("NETWORK");
+  }
+
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new AiError(body.error ?? "AI_FAILED", body.reason);
+  return Array.isArray(body.hide) ? body.hide.filter((id: unknown): id is string => typeof id === "string") : [];
 }
 
 // translation key of the message for an ai error

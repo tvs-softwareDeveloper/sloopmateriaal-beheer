@@ -164,6 +164,30 @@ is nu gegarandeerd gelijk, direct en gratis.
 **Reden:** M-003. "staal" vond "Stalen" niet, en het type is een keuze in de data die het model niet kan weten (koper onder
 metaal, lampen onder armaturen). De AI stelt voor, de code controleert.
 
+## B-018 — Synoniemen: woordgroepen plus een AI-controle op de kandidaten (28-10-2026, D13)
+
+**Besluit (Tristan: "kunnen we niet combinatie doen van a en b?", daarna "Ja, bouw A+B"):**
+- **Stap 1, route A:** `POST /ai/search` geeft geen los zoekwoord meer, maar **woordgroepen** (`search_groups`, in de filters
+  `searchGroups`). Een materiaal moet één woord uit elke groep hebben (`matchesGroups` in `searchMatch.ts`). Maximaal 4 groepen
+  van 8 woorden (`cleanGroups`). In de instructie: geen algemene woorden ("licht"), materiaal en product in aparte groepen
+  ("stalen pijpen": [staal] + [pijp, buis, leiding]), en een breed woord ("verwarming") krijgt geen type. Elke groep is een chip.
+- **Stap 2, route B maar klein:** heeft de zoekopdracht woordgroepen en vindt hij 1 tot 50 materialen, dan stuurt de frontend
+  hun id's naar `POST /ai/narrow`. De backend leest **naam en type uit de database** (niet uit de browser) en stuurt ze
+  **genummerd** naar Luna: geen id's, prijzen, aantallen of notities. Luna geeft de nummers die **niet** passen
+  (`not_matching`, enum van de getoonde nummers). Een vergeten nummer blijft dus zichtbaar.
+- Wat de AI wegliet staat als chip "Weggelaten door AI: n". Wegklikken toont ze weer. De uitleg noemt het aantal.
+- Mislukt stap 2, of zijn er meer dan 50 kandidaten, dan blijft alles van stap 1 zichtbaar. Zonder foutmelding.
+- Stap 2 heeft een eigen cache van 10 minuten, en wordt in het kostenlog geteld als `search-narrow`.
+
+**Reden:** M-004. A vond het meest (20–21/23) maar ook 10–13 verkeerde, B was het preciest (3 verkeerde) maar stuurt de hele
+voorraad mee. Achter elkaar houd je het bereik van A en krijg je de precisie van B, met hooguit 50 namen per vraag.
+
+**Afwijking van B-014:** daar staat dat er geen voorraadgegevens naar OpenAI gaan. Nu gaan **naam en type van de gevonden
+kandidaten** wel mee (geen prijzen, aantallen, notities, id's). Dat is bewust, en het is een goed gesprekspunt.
+
+**Gemeten in M-005** ([[04 - Meetresultaten]]): A 21/26 zonder valse treffers; B streepte in losse tests precies de verkeerde
+kandidaten weg (bv. alle 12 bij "pannen om mee te koken").
+
 ## Na de volgende fases
 
 De overige D-besluiten (D1 voor zoeken, D8) komen hier zodra ze vastliggen, als B-018 en verder. D1 is voor foto's

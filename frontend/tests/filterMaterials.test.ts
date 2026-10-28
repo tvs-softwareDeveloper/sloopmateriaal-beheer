@@ -14,6 +14,8 @@ const NO_FILTERS: Filters = {
   priceMax: null,
   project: null,
   location: null,
+  searchGroups: [],
+  hiddenIds: [],
 };
 
 const material = (m: Partial<Material> & Pick<Material, "name" | "material_type">): Material => ({
@@ -72,5 +74,29 @@ describe("dropTypeIfEmpty", () => {
 
     const nothingAnyway: Filters = { ...NO_FILTERS, search: "dakpan", type: "roofing" };
     expect(dropTypeIfEmpty(MATERIALS, nothingAnyway).droppedType).toBeNull();
+  });
+});
+
+describe("smart search word groups and hidden materials", () => {
+  it("needs one word from every group", () => {
+    const heating: Filters = { ...NO_FILTERS, searchGroups: [["verwarming", "radiator", "cv"]] };
+    expect(names(filterMaterials(MATERIALS, heating))).toEqual(["Radiatoren paneel type 22"]);
+
+    const copperPipes: Filters = { ...NO_FILTERS, searchGroups: [["koper"], ["leiding", "buis"]] };
+    expect(names(filterMaterials(MATERIALS, copperPipes))).toEqual(["Koperen waterleiding 15 mm"]);
+
+    const steelPipes: Filters = { ...NO_FILTERS, searchGroups: [["staal"], ["leiding", "buis"]] };
+    expect(filterMaterials(MATERIALS, steelPipes)).toEqual([]);
+  });
+
+  it("leaves out what the ai crossed off", () => {
+    const hidden: Filters = { ...NO_FILTERS, hiddenIds: ["Stalen trapleuning"] };
+    expect(names(filterMaterials(MATERIALS, hidden))).not.toContain("Stalen trapleuning");
+    expect(filterMaterials(MATERIALS, hidden)).toHaveLength(3);
+  });
+
+  it("also drops the type when only word groups were given", () => {
+    const asked: Filters = { ...NO_FILTERS, searchGroups: [["koper"], ["leiding"]], type: "plumbing" };
+    expect(dropTypeIfEmpty(MATERIALS, asked).droppedType).toBe("plumbing");
   });
 });

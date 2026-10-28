@@ -32,6 +32,10 @@ export type AiConfig = {
     // the same question within this time gets the same answer from memory, without a new call
     cacheMs: number;
     cacheMaxEntries: number;
+    // second step: the ai crosses off the found materials that don't fit the question. above this many
+    // candidates that step is skipped and everything that was found stays visible
+    maxCandidates: number;
+    narrowMaxOutputTokens: number;
   };
 };
 
@@ -84,6 +88,9 @@ export function readAiConfig(env: NodeJS.ProcessEnv = process.env): AiConfig {
       temperature: 0,
       cacheMs: 10 * 60 * 1000,
       cacheMaxEntries: 200,
+      // 50 names and types are about 1000 tokens, a tenth of a cent with luna
+      maxCandidates: 50,
+      narrowMaxOutputTokens: 300,
     },
   };
 }

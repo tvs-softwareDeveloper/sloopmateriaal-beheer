@@ -7,12 +7,18 @@ export type CacheKeyParts = { query: string; lang: string; names: { projects: st
 // "Kun je alle  stalen materialen zoeken?" and "kun je alle stalen materialen zoeken" are the same question.
 // the names are part of the key: a new project can change the right answer.
 export function cacheKey({ query, lang, names }: CacheKeyParts): string {
-  const question = query
+  // old: const question = query.toLowerCase().replace(/[?!.]+$/, "").replace(/\s+/g, " ").trim();
+  // (moved to normalizeQuestion, the narrow step needs the same)
+  const question = normalizeQuestion(query);
+  return JSON.stringify([lang, question, names.projects, names.locations]);
+}
+
+export function normalizeQuestion(query: string): string {
+  return query
     .toLowerCase()
     .replace(/[?!.]+$/, "")
     .replace(/\s+/g, " ")
     .trim();
-  return JSON.stringify([lang, question, names.projects, names.locations]);
 }
 
 export function createSearchCache<T>(ttlMs: number, maxEntries: number, now: () => number = Date.now) {

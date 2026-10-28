@@ -22,9 +22,11 @@ import type { Material } from "../../types";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "../LanguageContext";
-import { aiErrorKey, searchWithAi, useAiStatus } from "../ai/aiApi";
+// old: import { aiErrorKey, searchWithAi, useAiStatus } from "../ai/aiApi";
+import { aiErrorKey, MAX_NARROW_CANDIDATES, narrowWithAi, searchWithAi, useAiStatus } from "../ai/aiApi";
 import { EMPTY_FILTERS } from "./emptyFilters";
-import { dropTypeIfEmpty } from "./filterMaterials";
+// old: import { dropTypeIfEmpty } from "./filterMaterials";
+import { dropTypeIfEmpty, filterMaterials } from "./filterMaterials";
 
 type TranslationFunction = (key: string) => string;
 
@@ -39,6 +41,10 @@ export type Filters = {
   priceMax: number | null;
   project: string | null;
   location: string | null;
+  // smart search: one word from every group has to match ([] = none), and the ids the ai crossed off
+  // as not fitting the question ([] = none)
+  searchGroups: string[][];
+  hiddenIds: string[];
 };
 
 type FilterPanelProps = {
@@ -133,6 +139,8 @@ export default function FilterPanel({
     filters.priceMax !== null,
     filters.project !== null,
     filters.location !== null,
+    filters.searchGroups.length > 0,
+    filters.hiddenIds.length > 0,
   ].filter(Boolean).length;
 
   // smart search: with the button on, the search box takes a question and Enter asks the ai for filters.
@@ -155,11 +163,31 @@ export default function FilterPanel({
       const proposed: Filters = { ...EMPTY_FILTERS, ...found, sort: found.sort ?? filters.sort };
       // the type is dropped when it is the only reason nothing was found, and the explanation says so
       const checked = materials ? dropTypeIfEmpty(materials, proposed) : { filters: proposed, droppedType: null };
-      setFilters(checked.filters);
+
+      // second step: the ai crosses off what the word groups found but doesn't fit the question ("licht" in
+      // "licht roestig"). only after a word search, pure filters like type or price are exact. when it fails
+      // or there are too many, everything that was found simply stays visible
+      let hiddenIds: string[] = [];
+      if (materials && checked.filters.searchGroups.length > 0) {
+        const ids = filterMaterials(materials, checked.filters)
+          .map((m) => m.id)
+          .filter((id): id is string => !!id);
+        if (ids.length > 0 && ids.length <= MAX_NARROW_CANDIDATES) {
+          hiddenIds = await narrowWithAi(q, ids).catch(() => []);
+        }
+      }
+
+      // old: setFilters(checked.filters);
+      setFilters({ ...checked.filters, hiddenIds });
+      // old: setExplanation(checked.droppedType ? `${explanation} ${...aiSearchTypeDropped...}` : explanation);
       setExplanation(
-        checked.droppedType
-          ? `${explanation} ${t("aiSearchTypeDropped").replace("{type}", t(checked.droppedType))}`
-          : explanation
+        [
+          explanation,
+          checked.droppedType ? t("aiSearchTypeDropped").replace("{type}", t(checked.droppedType)) : null,
+          hiddenIds.length > 0 ? t("aiSearchNarrowed").replace("{n}", String(hiddenIds.length)) : null,
+        ]
+          .filter(Boolean)
+          .join(" ")
       );
     } catch (err) {
       // the ai could not help: search for the typed text the normal way
@@ -414,6 +442,29 @@ export default function FilterPanel({
               <ChipRemove
                 label={t("removeFilter")}
                 onClick={() => setFilters((prev) => ({ ...prev, search: "" }))}
+              />
+            </Badge>
+          )}
+          {/* one chip per word group of smart search, so you see which words the ai came up with */}
+          {filters.searchGroups.map((group, i) => (
+            <Badge key={`group-${i}`} variant="secondary" className="gap-1 px-3 py-1">
+              {t("search")}: {group.join(" / ")}
+              <ChipRemove
+                label={t("removeFilter")}
+                onClick={() =>
+                  setFilters((prev) => ({ ...prev, searchGroups: prev.searchGroups.filter((_, j) => j !== i) }))
+                }
+              />
+            </Badge>
+          ))}
+          {/* what the ai crossed off; removing the chip shows those materials again */}
+          {filters.hiddenIds.length > 0 && (
+            <Badge variant="secondary" className="gap-1 px-3 py-1 bg-violet-50 text-violet-800">
+              <Sparkles className="w-3 h-3" />
+              {t("aiSearchHidden").replace("{n}", String(filters.hiddenIds.length))}
+              <ChipRemove
+                label={t("aiSearchShowHidden")}
+                onClick={() => setFilters((prev) => ({ ...prev, hiddenIds: [] }))}
               />
             </Badge>
           )}

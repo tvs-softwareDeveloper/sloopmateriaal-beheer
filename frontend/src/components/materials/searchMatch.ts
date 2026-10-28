@@ -45,3 +45,9 @@ export function matchesSearch(search: string, text: string): boolean {
     return plain.includes(word) || stems.some((t) => t.startsWith(s) || t.endsWith(s));
   });
 }
+
+// word groups from smart search: one word (or phrase) from every group has to match, with the same rules
+// as above. [["staal"], ["pijp", "buis"]] finds "Stalen buis" and "Stalen pijpen", not "Koperen buis".
+export function matchesGroups(groups: string[][], text: string): boolean {
+  return groups.every((group) => group.some((term) => term.trim() !== "" && matchesSearch(term, text)));
+}

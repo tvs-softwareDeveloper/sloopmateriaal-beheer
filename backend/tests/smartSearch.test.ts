@@ -2,7 +2,7 @@
 // becomes the filters of the materials page. uses a fake client, so nothing is sent to openai.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readAiConfig } from "../src/ai/aiConfig";
-import { buildSearchSchema, smartSearch, toFilters, type CachedSearch, type KnownNames } from "../src/ai/smartSearch";
+import { buildSearchSchema, cleanGroups, smartSearch, toFilters, type CachedSearch, type KnownNames } from "../src/ai/smartSearch";
 import { createSearchCache } from "../src/ai/searchCache";
 import type { AiClient } from "../src/ai/structuredCall";
 import { createUsageTracker } from "../src/ai/usage";
@@ -19,7 +19,7 @@ const NAMES: KnownNames = {
 
 // an answer with nothing filled in; tests override what they need
 const EMPTY = {
-  search: null,
+  search_groups: null,
   type: null,
   status: null,
   condition: null,
@@ -102,7 +102,7 @@ describe("smartSearch request", () => {
   });
 
   it("answers the same question from the cache, without a second call", async () => {
-    const { client, calls } = fakeClient(completed({ ...EMPTY, search: "staal" }));
+    const { client, calls } = fakeClient(completed({ ...EMPTY, search_groups: [["staal"]] }));
     const cache = createSearchCache<CachedSearch>(60_000, 10);
     const d = { ...deps(client), cache };
 
@@ -143,7 +143,7 @@ describe("smartSearch answer", () => {
   it("turns the answer into the filters of the materials page", async () => {
     const answer = {
       ...EMPTY,
-      search: "balk",
+      search_groups: [["balk", "ligger"]],
       type: "wood",
       condition: "good",
       price_max: 50,
@@ -157,7 +157,8 @@ describe("smartSearch answer", () => {
     expect(result.status).toBe(200);
     expect(result.body).toEqual({
       filters: {
-        search: "balk",
+        search: "",
+        searchGroups: [["balk", "ligger"]],
         type: "wood",
         status: "all",
         condition: "good",
@@ -198,6 +199,7 @@ describe("toFilters", () => {
   it("makes every empty field 'all' or empty", () => {
     expect(toFilters(EMPTY, NAMES)).toEqual({
       search: "",
+      searchGroups: [],
       type: "all",
       status: "all",
       condition: "all",
@@ -216,8 +218,13 @@ describe("toFilters", () => {
   });
 
   it("turns a project or location that doesn't exist into a search word", () => {
-    const filters = toFilters({ ...EMPTY, search: "balk", project: "Amsterdam", location: "Hal 9" }, NAMES);
-    expect(filters).toMatchObject({ search: "balk Amsterdam Hal 9", project: null, location: null });
+    const filters = toFilters({ ...EMPTY, search_groups: [["balk"]], project: "Amsterdam", location: "Hal 9" }, NAMES);
+    expect(filters).toMatchObject({ search: "Amsterdam Hal 9", searchGroups: [["balk"]], project: null, location: null });
+  });
+
+  it("keeps the word groups of the answer, cleaned up", () => {
+    const answer = { ...EMPTY, search_groups: [["Staal "], ["pijp", "BUIS", "buis", "x", ""]] };
+    expect(toFilters(answer, NAMES).searchGroups).toEqual([["staal"], ["pijp", "buis"]]);
   });
 
   it("swaps a minimum price above the maximum and drops negative prices", () => {
@@ -232,5 +239,40 @@ describe("buildSearchSchema", () => {
     expect(schema.properties.project).toEqual({ type: ["string", "null"], enum: [null] });
     expect(schema.properties.location).toEqual({ type: ["string", "null"], enum: [null] });
     expect(schema.required.sort()).toEqual(Object.keys(schema.properties).sort());
+  });
+});
+
+describe("cleanGroups", () => {
+  it("drops empty words and groups and keeps at most 4 groups of 8 words", () => {
+    expect(cleanGroups(null)).toEqual([]);
+    expect(cleanGroups([[], [" "], ["a"]])).toEqual([]);
+    const many = Array.from({ length: 12 }, (_, i) => `woord${i}`);
+    const result = cleanGroups([many, ["b1"], ["c1"], ["d1"], ["e1"]]);
+    expect(result).toHaveLength(4);
+    expect(result[0]).toHaveLength(8);
+  });
+
+  it("the schema asks for groups of strings or null", () => {
+    expect(buildSearchSchema({ projects: [], locations: [] }).properties.search_groups).toEqual({
+      type: ["array", "null"],
+      items: { type: "array", items: { type: "string" } },
+    });
+  });
+});
+
+describe("smartSearch with word groups", () => {
+  it("never passes on groups that are not lists of words", async () => {
+    const { client } = fakeClient(completed({ ...EMPTY, search_groups: ["staal"] }));
+    expect((await smartSearch(deps(client), { query: "staal" })).body).toEqual({
+      error: "AI_FAILED",
+      reason: "INVALID_ANSWER",
+    });
+  });
+
+  it("tells the model to group synonyms and to keep material and product apart", async () => {
+    const { client, calls } = fakeClient(completed(EMPTY));
+    await smartSearch(deps(client), { query: "verwarming" });
+    expect(calls[0].instructions).toContain('[["staal"], ["pijp", "buis", "leiding"]]');
+    expect(calls[0].instructions).toContain("licht roestig");
   });
 });

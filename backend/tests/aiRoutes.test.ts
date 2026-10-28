@@ -28,7 +28,11 @@ async function start(
   const app = express();
   app.use(express.json());
   const knownNames = async () => ({ projects: ["Sloop boerderij Dalfsen"], locations: ["Loods A"] });
-  app.use("/ai", createAiRouter({ config, usage: createUsageTracker(() => {}), client, uploadsDir, knownNames }));
+  const loadCandidates = async () => [];
+  app.use(
+    "/ai",
+    createAiRouter({ config, usage: createUsageTracker(() => {}), client, uploadsDir, knownNames, loadCandidates })
+  );
 
   await new Promise<void>((resolve) => {
     server = app.listen(0, "127.0.0.1", () => resolve());
@@ -55,7 +59,7 @@ describe("/ai without a key", () => {
 
   it("every other ai route answers 503, also routes that don't exist yet", async () => {
     const base = await start({});
-    for (const path of ["/analyze-photo", "/search"]) {
+    for (const path of ["/analyze-photo", "/search", "/narrow"]) {
       const res = await fetch(`${base}${path}`, { method: "POST" });
       expect(res.status).toBe(503);
       expect(await res.json()).toEqual({ error: "AI_NOT_CONFIGURED" });
@@ -150,7 +154,7 @@ describe("/ai with a key", () => {
 
   it("POST /search answers with filters, using the known project names", async () => {
     const answer = {
-      search: null,
+      search_groups: null,
       type: "brick",
       status: "for_sale",
       condition: null,
@@ -184,5 +188,30 @@ describe("/ai with a key", () => {
     const body = await res.json();
     expect(body.filters).toMatchObject({ type: "brick", status: "for_sale", sort: "price", project: "Sloop boerderij Dalfsen" });
     expect(body.explanation).toBe(answer.explanation);
+  });
+
+  it("POST /narrow answers which found materials to hide", async () => {
+    const text = JSON.stringify({ not_matching: [] });
+    const client = {
+      responses: {
+        create: async () => ({
+          status: "completed",
+          incomplete_details: null,
+          output: [{ type: "message", content: [{ type: "output_text", text }] }],
+          output_text: text,
+          usage: { input_tokens: 300, output_tokens: 10 },
+        }),
+      },
+    } as unknown as AiClient;
+
+    // the test database has no materials, so nothing is judged and nothing is hidden
+    const base = await start({ OPENAI_API_KEY: FAKE_KEY }, undefined, client);
+    const res = await fetch(`${base}/narrow`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: "verlichting", ids: ["MAT-SEED-001"] }),
+    });
+    expect(res.status).toBe(200);
+    expect((await res.json()).hide).toEqual([]);
   });
 });

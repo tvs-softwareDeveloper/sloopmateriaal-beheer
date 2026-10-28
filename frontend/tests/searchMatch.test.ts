@@ -1,6 +1,6 @@
 // tests for the tolerant search: dutch word forms match each other, plain text still works
 import { describe, expect, it } from "vitest";
-import { matchesSearch, stem } from "../src/components/materials/searchMatch";
+import { matchesGroups, matchesSearch, stem } from "../src/components/materials/searchMatch";
 
 describe("stem", () => {
   it("brings different forms of the same word back to one stem", () => {
@@ -61,5 +61,19 @@ describe("matchesSearch", () => {
 
   it("matches everything for an empty search", () => {
     expect(matchesSearch("  ", "anything")).toBe(true);
+  });
+});
+
+describe("matchesGroups", () => {
+  it("needs one word or phrase from every group", () => {
+    const groups = [["staal"], ["pijp", "buis", "leiding"]];
+    expect(matchesGroups(groups, "Stalen buizen 48 mm")).toBe(true);
+    expect(matchesGroups(groups, "Stalen pijpen")).toBe(true);
+    expect(matchesGroups(groups, "Koperen buis")).toBe(false);
+    expect(matchesGroups([["cv ketel", "radiator"]], "Remeha cv ketel")).toBe(true);
+  });
+
+  it("matches everything without groups", () => {
+    expect(matchesGroups([], "anything")).toBe(true);
   });
 });

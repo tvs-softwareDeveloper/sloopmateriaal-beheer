@@ -1,5 +1,24 @@
 # Sessie 2026-10-28 — Stand en overdracht
 
+## Update 28-10 avond (persoonlijke laptop, `C:\eigen projecten\sloopmateriaal-beheer`)
+
+- **D13 gebouwd als combinatie A+B** (B-018 in [[02 - Besluitenlog]]): woordgroepen in `smartSearch.ts`, nieuwe route
+  `POST /ai/narrow` (`narrowResults.ts`, `candidates.ts`), en in de frontend `matchesGroups`, `narrowWithAi`, een chip per
+  woordgroep en een chip "Weggelaten door AI".
+- **Tests:** backend 78/78, frontend 18/18. Typecheck en build schoon. `npm install` gedraaid in beide mappen (`openai` ontbrak).
+- **Database thuis:** `backend/.env` stond nog op de oude gehoste database van de Emergis-versie (filess.io, niet meer te
+  bereiken). Nu lokale MySQL80, database `develop_materials_app`; de oude regels staan als `# old:` in `.env`. Die database
+  bestond al met 1 eigen materiaal en een oude tabel: migratie `001_recycled_status.sql` gedraaid, daarna `db:seed` (41 materialen).
+- **Sleutel:** Tristan maakte een nieuwe OpenAI-sleutel voor deze laptop (een sleutel is maar één keer te zien). `AI ON`.
+- **Gemeten (M-005):** A 21/26 zonder valse treffers; B streept in losse tests precies de verkeerde kandidaten weg. In de
+  browser gecontroleerd met "pannen om mee te koken". Meetscript: `npm run eval:search` in `frontend/`.
+- **Instructie aangescherpt (M-006):** testvragen A 23/26 (was 21), controlevragen 5/5. Wel: B haalde bij "ramen" de
+  aluminium kozijnen weg, en "elektra" gaf een andere groep met de boiler erbij. Niet verder geschaafd op dezelfde vragen.
+- **Servers:** backend en frontend draaien in de Terminal-tabs van de Claude-app.
+- Niet gecommit (Tristan commit zelf).
+
+Hieronder de stand van overdag op de werklaptop.
+
 > Eind van de dag op de werklaptop. Tristan gaat thuis verder. **Lees dit eerst**, daarna [[01 - Plan van aanpak AI-koppeling]].
 
 ## ⚠️ Vóór je van laptop wisselt

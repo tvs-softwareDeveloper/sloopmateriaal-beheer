@@ -247,6 +247,9 @@ const translations: Record<string, Record<string, string>> = {
     priceUpTo: 'Price up to',
     removeFilter: 'Remove filter',
     aiSearchTypeDropped: '(Searched without the type "{type}": with it nothing was found.)',
+    aiSearchNarrowed: '(AI left out {n} that did not fit your question.)',
+    aiSearchHidden: 'Left out by AI: {n}',
+    aiSearchShowHidden: 'Show them anyway',
 
     // Language
     language: 'Language',
@@ -490,6 +493,9 @@ const translations: Record<string, Record<string, string>> = {
     priceUpTo: 'Prijs tot',
     removeFilter: 'Filter weghalen',
     aiSearchTypeDropped: '(Gezocht zonder de soort "{type}": daarmee was er niets.)',
+    aiSearchNarrowed: '(De AI liet er {n} weg die niet bij je vraag pasten.)',
+    aiSearchHidden: 'Weggelaten door AI: {n}',
+    aiSearchShowHidden: 'Toch tonen',
 
     // Language
     language: 'Taal',

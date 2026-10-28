@@ -20,6 +20,8 @@
 🟢 **D11 en D12 akkoord van Tristan** (28-10-2026), gebouwd en vastgelegd als B-011 en B-012. Daarmee is D1 voor foto's
 beantwoord: Terra. Nameting: Terra telt de plankenstapel 5× binnen 174–180, en echt zijn het er 168 ([[04 - Meetresultaten]]).
 🟢 **D6 en D7 = het advies** (fase 4 gestart zonder reactie, 28-10-2026), gebouwd en vastgelegd als B-013 en B-014.
+🟢 **D13: Tristan koos een combinatie van A en B** (28-10-2026, avond): eerst woordgroepen (A), daarna kiest Luna uit de
+gevonden kandidaten (B, maar alleen naam en type van max. 50). Gebouwd en vastgelegd als B-018, gemeten in M-005.
 
 | # | Besluit | Mijn advies | Nodig vóór |
 |---|---|---|---|

@@ -190,3 +190,77 @@ voor elk soort materiaal en voor synoniemen ("stalen pijpen" met type metaal).
 - de groepen als chip tonen ("Zoeken: radiator / cv / ketel"), zodat je ziet wat de AI bedacht.
 
 B en C zijn goede gesprekspunten: "ik heb drie routes gemeten en bewust gekozen".
+
+## M-005 — Synoniemen met A+B, nieuwe vaste testset (28-10-2026, avond)
+
+**Aanleiding:** B-018 gebouwd (woordgroepen, daarna kiest Luna uit de kandidaten). De 12 vragen van M-004 waren niet bewaard
+(scripts in een tijdelijke map), dus de cijfers zijn **niet één op één te vergelijken** met M-004.
+
+**Opzet:**
+- Nieuwe vaste set van 12 vragen in `frontend/eval/searchEval.ts`, draaien met `npm run eval:search` in `frontend/` (backend
+  moet draaien). Per vraag de materialen die een mens verwacht (samen 26), plus "ook goed" (boiler bij verwarming,
+  metselpuin bij stenen) die niet als fout tellen. De verwachte lijsten zijn door Claude opgesteld: Tristan kan ze nalopen.
+- Het script gebruikt het filter van de frontend en de echte routes, dus precies wat de pagina doet. Luna, `none`, temperature 0.
+
+**Uitkomst testset:**
+
+| | Gevonden | Onterecht |
+|---|---|---|
+| Alleen stap 1 (A, woordgroepen) | **21/26** | **0** |
+| Stap 1 + 2 (A+B) | 21/26 | 0 |
+
+- De strengere instructie (geen algemene woorden, materiaal en product apart) haalde de valse treffers van M-004 al weg. Stap 2
+  had op deze set niets weg te strepen.
+- **Gemist (5):** "planken" vond Grenen vloerdelen niet (geen "vloerdeel" in de groep); "stenen" vond 2 van 5, doordat de AI
+  type `brick` koos (hardstenen dorpels en natuurstenen vensterbanken zijn `other`) en "steen" midden in "kalkzandsteenblokken"
+  staat; "dakmateriaal" vond de golfplaten niet.
+
+**Stap 2 los getest** (`POST /ai/narrow` met lastige kandidaten):
+
+| Vraag | Kandidaten | Weggelaten door Luna |
+|---|---|---|
+| verlichting | Lichtarmaturen TL, Stalen HEA-balken ("licht roestig"), Golfplaten ("lichtdoorlatend"), Keukenblok ("lichte krasjes") | de laatste drie ✔ |
+| pannen om mee te koken | Dakpannen, Keukenblok | allebei ✔ |
+| glas om uit te drinken | Dubbel glas, Glazen binnenwanden, Enkel glas | alle drie ✔ |
+| stalen balken | Stalen HEA-balken, Stalen trapleuning, Stelconplaten, Eiken balken | de laatste drie ✔ |
+
+- Per controle ~1–1,3 s en ~$0,00003. Een zoekvraag zelf ~1–3 s en ~$0,0002.
+- In de browser: "pannen om mee te koken" gaf de groep pan/kookpan/koekenpan/…, die vond 12 materialen (o.a. "kantoor**pan**d"
+  in een projectnaam en radiatoren **pan**eel). Luna liet ze alle 12 weg; de chip "Weggelaten door AI: 12" zet ze terug.
+
+**Conclusie:** A doet het meeste werk. B is het vangnet voor korte of dubbelzinnige woorden, waar A alleen veel onzin zou tonen.
+Kosten van alles samen tot nu toe (27 aanroepen): ~$0,0013.
+
+**Mogelijke volgende stap (niet gedaan):** bij brede woorden ("stenen") geen type kiezen, en woorden als "vloerdeel" en
+"golfplaat" als voorbeeld in de instructie. Dat zou 3–4 van de 5 missers oplossen.
+
+## M-006 — Zoekinstructie aangescherpt na M-005 (28-10-2026, avond)
+
+**Wat er veranderde (`smartSearch.ts`):**
+- geen type bij een materiaalfamilie die over meerdere types gaat (stenen, dakmateriaal, vloeren);
+- een regel over Nederlandse samenstellingen: een zoekwoord past alleen aan het begin of eind van een woord, dus ook
+  vloerdelen/steigerplanken, kalkzandsteen/natuursteen/hardsteen, golfplaten/bitumen noemen;
+- een voorbeeld "isolatie" (geen testvraag).
+- De testset kreeg 4 **controlevragen** (keukens, kabels, vloeren, tegels) die niet zijn gebruikt bij het aanscherpen.
+
+**Uitkomst (één run, cache leeg):**
+
+| | M-005 | M-006 |
+|---|---|---|
+| Testvragen, A gevonden | 21/26, 0 onterecht | **23/26**, 1 onterecht |
+| Testvragen, A+B gevonden | 21/26, 0 onterecht | 22/26, 1 onterecht |
+| Controlevragen, A | – | **5/5**, 1 onterecht |
+| Controlevragen, A+B | – | **5/5, 0 onterecht** |
+
+- **Beter:** "planken" 2/2 (vloerdelen erbij), "stenen" 4/5 (was 2/5, de dorpels en vensterbanken worden nu gevonden).
+- **Slechter:**
+  - "elektra" 2/3 met de elektrische boiler erbij. De groep was nu anders dan in M-005: geen groepenkast en kabelgoot, wel
+    "elektrisch". Een taalmodel geeft na een kleine wijziging van de instructie soms een andere groep.
+  - **B streepte één goede weg:** bij "ramen" vond Luna "Aluminium kozijnen" (zonder glas) geen raam. Verdedigbaar, maar hier als
+    fout geteld. B haalde bij de controlevraag "vloeren" wel terecht het metselpuin weg.
+- Nog gemist: de zinken dakgoot bij "dakmateriaal" ("dakgoot" zat deze keer niet in de groep; in M-005 wel).
+- Kosten van de run $0,0015 voor 16 vragen. Gemiddeld ~3,2 s AI-tijd per vraag (zoeken + controle samen): merkbaar trager
+  dan alleen zoeken.
+
+**Niet verder bijgesteld:** nog meer schaven op dezelfde vragen leert de instructie de toets uit het hoofd. Voor een eerlijk
+beeld eerst nieuwe vragen of eigen data (fase 6).

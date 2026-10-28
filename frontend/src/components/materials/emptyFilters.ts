@@ -12,4 +12,6 @@ export const EMPTY_FILTERS: Filters = {
   priceMax: null,
   project: null,
   location: null,
+  searchGroups: [],
+  hiddenIds: [],
 };

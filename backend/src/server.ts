@@ -10,6 +10,7 @@ import { createAiRouter } from "./ai/aiRoutes";
 import { createOpenAiClient } from "./ai/openaiClient";
 import { createUsageTracker } from "./ai/usage";
 import { createKnownNames } from "./ai/knownNames";
+import { loadCandidates } from "./ai/candidates";
 
 dotenv.config();
 
@@ -63,6 +64,8 @@ app.use(
     uploadsDir,
     // smart search picks project and location from the names that exist
     knownNames: createKnownNames(aiConfig.search.maxNames),
+    // and checks what it found against the question
+    loadCandidates,
   })
 );
 console.log(

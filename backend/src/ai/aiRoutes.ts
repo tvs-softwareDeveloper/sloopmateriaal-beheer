@@ -9,6 +9,7 @@ import { analyzePhoto, type AiClient } from "./photoAnalysis";
 import { createRateLimiter } from "./rateLimit";
 import { smartSearch, type CachedSearch, type KnownNames } from "./smartSearch";
 import { createSearchCache } from "./searchCache";
+import { narrowResults, type Candidate } from "./narrowResults";
 import type { UsageTracker } from "./usage";
 
 export type AiDeps = {
@@ -20,10 +21,13 @@ export type AiDeps = {
   uploadsDir: string;
   // the project and location names smart search may pick from
   knownNames: () => Promise<KnownNames>;
+  // name and type of the materials smart search found, by id
+  loadCandidates: (ids: string[]) => Promise<Candidate[]>;
 };
 
 // old: export function createAiRouter({ config, usage, client, uploadsDir }: AiDeps) {
-export function createAiRouter({ config, usage, client, uploadsDir, knownNames }: AiDeps) {
+// old: export function createAiRouter({ config, usage, client, uploadsDir, knownNames }: AiDeps) {
+export function createAiRouter({ config, usage, client, uploadsDir, knownNames, loadCandidates }: AiDeps) {
   const router = express.Router();
 
   // which ai features work and what they cost so far. never contains the key.
@@ -58,6 +62,14 @@ export function createAiRouter({ config, usage, client, uploadsDir, knownNames }
   router.post("/search", async (req, res) => {
     // old: const result = await smartSearch({ client, config, usage, knownNames }, req.body);
     const result = await smartSearch({ client, config, usage, knownNames, cache: searchCache }, req.body);
+    res.status(result.status).json(result.body);
+  });
+
+  // body: { query: string, ids: string[] (the materials the search found, max 50) }
+  // answer: { hide: string[] (ids that don't fit the question), usage } or { error, reason? }
+  const narrowCache = createSearchCache<string[]>(config.search.cacheMs, config.search.cacheMaxEntries);
+  router.post("/narrow", async (req, res) => {
+    const result = await narrowResults({ client, config, usage, loadCandidates, cache: narrowCache }, req.body);
     res.status(result.status).json(result.body);
   });
 

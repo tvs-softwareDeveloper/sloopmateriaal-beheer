@@ -3,10 +3,20 @@
 // before they are shown.
 import type { Material } from "../../types";
 import type { Filters } from "./FilterPanel";
-import { matchesSearch } from "./searchMatch";
+// old: import { matchesSearch } from "./searchMatch";
+import { matchesGroups, matchesSearch } from "./searchMatch";
 
 export function filterMaterials(materials: Material[], filters: Filters): Material[] {
   return materials.filter((m) => {
+    // what smart search crossed off as not fitting the question (can be shown again with the chip)
+    if (filters.hiddenIds.length > 0 && m.id && filters.hiddenIds.includes(m.id)) return false;
+    // one word from every group of smart search, so "verwarming" also finds radiators
+    if (
+      filters.searchGroups.length > 0 &&
+      !matchesGroups(filters.searchGroups, [m.name, m.location, m.project_name, m.notes].filter(Boolean).join(" "))
+    ) {
+      return false;
+    }
     // every search word somewhere, also in another form of the word ("staal" finds "Stalen")
     if (
       filters.search.trim() &&
@@ -34,7 +44,9 @@ export function dropTypeIfEmpty(
   materials: Material[],
   filters: Filters
 ): { filters: Filters; droppedType: Exclude<Filters["type"], "all"> | null } {
-  if (filters.type === "all" || !filters.search.trim()) return { filters, droppedType: null };
+  // old: if (filters.type === "all" || !filters.search.trim()) return { filters, droppedType: null };
+  const hasWords = filters.search.trim() !== "" || filters.searchGroups.length > 0;
+  if (filters.type === "all" || !hasWords) return { filters, droppedType: null };
   if (filterMaterials(materials, filters).length > 0) return { filters, droppedType: null };
 
   const withoutType: Filters = { ...filters, type: "all" };
